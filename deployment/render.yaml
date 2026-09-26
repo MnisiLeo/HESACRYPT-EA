@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: lm-nisi-trading
+    env: docker
+    dockerfilePath: ./deployment/Dockerfile
+    plan: starter
+    envVars:
+      - key: METAAPI_TOKEN
+        sync: false
+      - key: METAAPI_ACCOUNT_ID
+        sync: false
+      - key: APP_KEY
+        sync: false
+      - key: ENABLE_LIVE
+        value: "false"
+      - key: DEFAULT_SYMBOL
+        value: XAUUSD
+      - key: DEFAULT_VOLUME
+        value: "0.01"
+      - key: MAX_OPEN_POSITIONS
+        value: "1"
+      - key: MAX_DAILY_LOSS_PERCENT
+        value: "2"
+      - key: COOLDOWN_SECONDS
+        value: "180"
