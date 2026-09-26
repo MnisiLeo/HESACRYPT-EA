@@ -1,0 +1,21 @@
+# LMnisi implementation requirements
+
+- M15 -> M5 -> M1
+- CRT M15 range with M5 liquidity sweep and close back inside CRT
+- ICT liquidity
+- Supply/Demand and Support/Resistance location
+- Premium/Discount
+- M1/M5 MSS
+- Order Block/FVG
+- Stochastic BUY <=5 / SELL >=95
+- M1 engulfing
+- Strong displacement
+- 22 point score; trade threshold >=17
+- Mandatory: CRT sweep, CRT reclaim, M1/M5 MSS, engulfing
+- Cloud MetaApi connection
+- Demo/Live selector and server-side live gate
+- Pair and lot selectors
+- Automatic analysis/execution loop
+- Protective SL and RR TP attached to market order
+- Position limit, cooldown, emergency close
+- Phone-first PWA UI and Android WebView source
