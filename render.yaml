@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: lmnisi-trading
+    env: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health

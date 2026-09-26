@@ -1,10 +1,24 @@
-# L.Mnisi Full Phone-Only Cloud Trading Product
-Samsung A05 -> L.Mnisi frontend -> cloud -> MetaApi -> MT5 broker account.
+# L.Mnisi Cloud Trading System
 
-Includes frontend dashboard, chart, pair/lot controls, DEMO/LIVE gate, score 22/22, BUY/SELL, confirmations, positions/history views, authenticated backend API, cloud MetaApi adapter, automatic analysis/execution loop, position limit/cooldown, emergency close, strategy modules and deployment files.
+Phone-first cloud trading control panel for MT5 accounts through MetaApi. The Samsung phone is the control panel; the trading engine runs on the cloud service.
 
-Stochastic: M1 14-period. BUY confirmation <=5; SELL confirmation >=95; 1 point.
+## Current implementation
+- Real MetaApi REST connection for account, positions, candles and trade execution.
+- Closed-candle M15 -> M5 -> M1 analysis.
+- 22-point CRT/ICT/SMC/Supply-Demand/Support-Resistance/Stochastic/Engulfing score.
+- BUY stochastic trigger <=5 and SELL trigger >=95, including a recent 3-candle reach.
+- Mandatory CRT sweep + reclaim, M1/M5 MSS and M1 engulfing.
+- Market order sends protective SL and configurable RR take-profit in the same MetaApi request.
+- Position limit and trade cooldown.
+- Emergency close endpoint.
+- LIVE mode has a server-side ALLOW_LIVE_TRADING safety gate.
+- No MetaApi credentials are stored in the web UI.
 
-22-point weights: M15 structure 2; CRT sweep 3; CRT reclaim 2; ICT liquidity 2; Supply/Demand 2; Premium/Discount 1; MSS 3; OB/FVG 2; Stochastic 1; Engulfing 3; Displacement 1. Support/Resistance is displayed as an additional confirmation without adding points, preserving 22.
+## Important
+The strategy is rule-based and deterministic. It is not a guarantee of profit. DEMO testing should be completed before enabling live execution.
 
-Keep ENABLE_LIVE=false until a connected MT5 demo account is independently tested. Private credentials are not packaged.
+## Render
+Deploy the repository root containing this Dockerfile. Do not set a Root Directory. Add the environment variables from `.env.example` in Render.
+
+## MetaApi
+MetaApi is the cloud bridge between this service and an MT4/MT5 account. A MetaApi token and account ID are required before real broker data/execution can occur.
