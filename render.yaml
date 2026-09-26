@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: lmnisifinal
+    runtime: docker
+    plan: free
+    envVars:
+      - key: METAAPI_TOKEN
+        sync: false
+      - key: METAAPI_ACCOUNT_ID
+        sync: false
+      - key: APP_KEY
+        sync: false
+      - key: ENABLE_LIVE
+        value: "false"
+      - key: SYMBOLS
+        value: "XAUUSD,EURUSD,GBPUSD,USDJPY,BTCUSD"
+      - key: DEFAULT_VOLUME
+        value: "0.01"
+      - key: MAX_OPEN_POSITIONS
+        value: "1"
+      - key: MAX_DAILY_LOSS_PERCENT
+        value: "3"
+      - key: COOLDOWN_SECONDS
+        value: "180"
+      - key: RISK_REWARD
+        value: "2.0"
+      - key: METAAPI_REGION
+        value: "new-york"
