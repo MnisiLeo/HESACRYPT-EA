@@ -1,91 +1,137 @@
+"""LMnisi M15 -> M5 -> M1 CRT/ICT/SMC strategy.
+
+The strategy is deterministic: no LLM is involved in signal generation.
+It uses only CLOSED candles supplied by the broker adapter.
+Maximum score is exactly 22 points.
+Mandatory gates: CRT sweep + reclaim, M1/M5 MSS, and M1 engulfing.
+Stochastic trigger: BUY when the recent stochastic reaches <=5; SELL when it reaches >=95.
+"""
 from dataclasses import dataclass
-from typing import Dict, List, Optional
-import statistics
+from typing import List, Dict, Optional, Tuple
 
-WEIGHTS = {
-    'M15 directional structure': 2, 'CRT liquidity sweep': 3, 'CRT close/reclaim': 2,
-    'ICT liquidity': 2, 'Supply/Demand': 2, 'Premium/Discount': 1,
-    'M1/M5 MSS': 3, 'Order Block/FVG': 2, 'Stochastic': 1,
-    'Engulfing': 3, 'Strong displacement': 1,
-}
+@dataclass(frozen=True)
+class Candle:
+    o: float
+    h: float
+    l: float
+    c: float
+    t: str = ""
+    volume: float = 0.0
 
-@dataclass
-class Analysis:
-    symbol: str; side: str; score: int; eligible: bool; checks: Dict[str,bool]
-    stochastic: float; entry: Optional[float]; stop_loss: Optional[float]
-    take_profit: Optional[float]; reason: str; sr_level: Optional[float]=None
+def stoch_value(candles: List[Candle], period: int = 14) -> Optional[float]:
+    if len(candles) < period:
+        return None
+    w=candles[-period:]
+    lo=min(x.l for x in w); hi=max(x.h for x in w)
+    return 50.0 if hi==lo else 100.0*(w[-1].c-lo)/(hi-lo)
 
-def _stochastic(candles, period=14):
-    if len(candles) < period: return None
-    w=candles[-period:]; hi=max(float(x['high']) for x in w); lo=min(float(x['low']) for x in w); close=float(w[-1]['close'])
-    return 50.0 if hi==lo else 100*(close-lo)/(hi-lo)
+def stoch_recent(candles: List[Candle], period: int = 14, lookback: int = 3) -> Tuple[Optional[float], bool, bool]:
+    if len(candles) < period+lookback:
+        return None, False, False
+    vals=[]
+    for end in range(len(candles)-lookback, len(candles)):
+        vals.append(stoch_value(candles[:end+1], period))
+    vals=[v for v in vals if v is not None]
+    latest=vals[-1] if vals else None
+    return latest, any(v<=5 for v in vals), any(v>=95 for v in vals)
 
-def _engulfing(c,bull):
-    if len(c)<2:return False
-    a,b=c[-2],c[-1]; ao,ac,bo,bc=map(float,(a['open'],a['close'],b['open'],b['close']))
-    return (ac<ao and bc>bo and bo<=ac and bc>=ao) if bull else (ac>ao and bc<bo and bo>=ac and bc<=ao)
+def engulfing(prev: Candle, cur: Candle):
+    bull=(prev.c<prev.o and cur.c>cur.o and cur.o<=prev.c and cur.c>=prev.o)
+    bear=(prev.c>prev.o and cur.c<cur.o and cur.o>=prev.c and cur.c<=prev.o)
+    return bull,bear
 
-def _mss(c,bull,lb=6):
-    if len(c)<lb+1:return False
-    p=c[-lb-1:-1]; last=float(c[-1]['close'])
-    return last>max(float(x['high']) for x in p) if bull else last<min(float(x['low']) for x in p)
+def mss(candles: List[Candle], lookback: int = 6):
+    if len(candles)<lookback+1: return False,False
+    prior=candles[-lookback-1:-1]; cur=candles[-1]
+    return cur.c>max(x.h for x in prior), cur.c<min(x.l for x in prior)
 
-def _crt(m,bull):
-    if len(m)<3:return False,False
-    r=m[-2]; x=m[-1]; hi,lo=float(r['high']),float(r['low'])
-    swept=float(x['low'])<lo if bull else float(x['high'])>hi
-    reclaim=(lo<float(x['close'])<hi)
-    return swept,reclaim
+def displacement(candles: List[Candle], n: int = 10, mult: float = 1.25):
+    if len(candles)<n+1: return False
+    body=abs(candles[-1].c-candles[-1].o)
+    avg=sum(abs(x.c-x.o) for x in candles[-n-1:-1])/n
+    return bool(avg and body>=mult*avg)
 
-def _liq(c,bull):
-    if len(c)<8:return False
-    p=c[-7:-1]; x=c[-1]
-    return float(x['low'])<min(float(z['low']) for z in p) if bull else float(x['high'])>max(float(z['high']) for z in p)
+def _range(candles):
+    hi=max(x.h for x in candles); lo=min(x.l for x in candles)
+    return hi,lo,(hi+lo)/2
 
-def _sd_sr_pd(c,bull):
-    if len(c)<20:return False,False,False,None
-    w=c[-20:]; hi=max(float(x['high']) for x in w); lo=min(float(x['low']) for x in w); mid=(hi+lo)/2; close=float(w[-1]['close'])
-    # Location proxy: demand/support below midpoint for buys; supply/resistance above for sells.
-    loc=close<=mid if bull else close>=mid
-    # Explicit S/R proximity to recent swing extreme.
-    level=lo if bull else hi
-    span=max(hi-lo,1e-12); sr=abs(close-level)<=span*0.25
-    return loc, sr, loc, level
+def analyze(m15: List[Candle], m5: List[Candle], m1: List[Candle]) -> Dict:
+    if len(m15)<12 or len(m5)<20 or len(m1)<30:
+        return {"qualified":False,"score":0,"max_score":22,"side":"WAIT","raw_side":"WAIT","reason":"Not enough closed candles","checks":{}}
 
-def _ob_fvg(c,bull):
-    if len(c)<4:return False
-    a,b,x=c[-3],c[-2],c[-1]
-    fvg=float(x['low'])>float(a['high']) if bull else float(x['high'])<float(a['low'])
-    ob=float(b['close'])>float(b['open']) if bull else float(b['close'])<float(b['open'])
-    return fvg or ob
+    # M15 directional structure: compare recent closed structure with older structure.
+    bull=m15[-1].c>m15[-8].c and m15[-1].c>m15[-2].c
+    bear=m15[-1].c<m15[-8].c and m15[-1].c<m15[-2].c
+    raw_side="BUY" if bull else "SELL" if bear else "WAIT"
 
-def _disp(c):
-    if len(c)<11:return False
-    avg=statistics.mean(abs(float(x['close'])-float(x['open'])) for x in c[-11:-1]); body=abs(float(c[-1]['close'])-float(c[-1]['open']))
-    return bool(avg and body>=1.25*avg)
+    # CRT = latest CLOSED M15 candle. The latest CLOSED M5 candle must sweep its
+    # liquidity and close back inside the CRT range. It does not need to close
+    # beyond the liquidity level; only the wick must take it.
+    crt=m15[-1]
+    sweep_candle=m5[-1]
+    sweep=False; reclaim=False
+    if bull:
+        sweep=sweep_candle.l<crt.l
+        reclaim=sweep and sweep_candle.c>=crt.l and sweep_candle.c<=crt.h
+    elif bear:
+        sweep=sweep_candle.h>crt.h
+        reclaim=sweep and sweep_candle.c<=crt.h and sweep_candle.c>=crt.l
 
-def analyze(symbol,m15,m5,m1):
-    if min(len(m15),len(m5),len(m1))<20:
-        return Analysis(symbol,'WAIT',0,False,{},50,None,None,None,'Not enough data')
-    bull_bias=float(m15[-1]['close'])>float(m15[-7]['close']); bear_bias=float(m15[-1]['close'])<float(m15[-7]['close'])
-    candidates=[]
-    for bull in (True,False):
-        side='BUY' if bull else 'SELL'; bias=bull_bias if bull else bear_bias; sweep,reclaim=_crt(m15,bull); liq=_liq(m5,bull)
-        sd,sr,pd,level=_sd_sr_pd(m5,bull); mss=_mss(m1,bull); ob=_ob_fvg(m1,bull); st=_stochastic(m1)
-        st_ok=(st is not None and st<=5) if bull else (st is not None and st>=95)
-        eng=_engulfing(m1,bull); disp=_disp(m1)
-        checks={'M15 directional structure':bias,'CRT liquidity sweep':sweep,'CRT close/reclaim':reclaim,'ICT liquidity':liq,
-                'Supply/Demand':sd,'Support/Resistance':sr,'Premium/Discount':pd,'M1/M5 MSS':mss,'Order Block/FVG':ob,
-                'Stochastic':st_ok,'Engulfing':eng,'Strong displacement':disp}
-        # S/R is descriptive confirmation only and does not add a new point to preserve the 22-point system.
-        score=sum(WEIGHTS[k] for k,v in checks.items() if k in WEIGHTS and v)
-        mandatory=sweep and reclaim and mss and eng
-        eligible=score>=17 and mandatory
-        entry=sl=tp=None
-        if eligible:
-            entry=float(m1[-1]['close']); rng=max(float(x['high'])-float(x['low']) for x in m1[-10:]); risk=max(rng,entry*0.0005)
-            sl=entry-risk if bull else entry+risk; tp=entry+2*risk if bull else entry-2*risk
-        candidates.append(Analysis(symbol,side,score,eligible,checks,float(st or 50),entry,sl,tp,f'{side} {score}/22 | Stoch {st:.2f} | BUY<=5 SELL>=95',level))
-    eligible=[x for x in candidates if x.eligible]
-    if eligible:return max(eligible,key=lambda x:x.score)
-    return max(candidates,key=lambda x:x.score)
+    # External liquidity: latest M5 candle takes a recent M5 extreme and closes back inside.
+    ext=m5[-7:-1]
+    if bull:
+        ext_level=min(x.l for x in ext); liq=sweep_candle.l<ext_level and sweep_candle.c>ext_level
+    elif bear:
+        ext_level=max(x.h for x in ext); liq=sweep_candle.h>ext_level and sweep_candle.c<ext_level
+    else: liq=False
+
+    hi,lo,mid=_range(m5[-12:])
+    # Supply/demand + support/resistance location proxy: directional candle at an edge.
+    pos=(m5[-1].c-lo)/(hi-lo) if hi>lo else 0.5
+    demand=(pos<=0.40 and m5[-1].c>=m5[-1].o)
+    supply=(pos>=0.60 and m5[-1].c<=m5[-1].o)
+    sd_ok=demand if bull else supply if bear else False
+    pd_ok=m5[-1].c<=mid if bull else m5[-1].c>=mid if bear else False
+
+    b1,s1=mss(m1); b5,s5=mss(m5)
+    mss_ok=(b1 or b5) if bull else (s1 or s5) if bear else False
+    eg_bull,eg_bear=engulfing(m1[-2],m1[-1]); eng_ok=eg_bull if bull else eg_bear if bear else False
+
+    st,st_buy,st_sell=stoch_recent(m1)
+    st_ok=st_buy if bull else st_sell if bear else False
+    disp=displacement(m1)
+
+    a,b,c=m1[-3],m1[-2],m1[-1]
+    fvg=(c.l>a.h) if bull else (c.h<a.l) if bear else False
+    ob=((b.c>b.o) if bull else (b.c<b.o) if bear else False)
+    obfvg=ob or fvg
+
+    checks={
+      "M15 directional structure": bull or bear,
+      "CRT liquidity sweep": sweep,
+      "CRT close/reclaim": reclaim,
+      "ICT liquidity": liq,
+      "Supply/Demand": sd_ok,
+      "Premium/Discount": pd_ok,
+      "M1/M5 MSS": mss_ok,
+      "Order Block/FVG": obfvg,
+      "Stochastic": st_ok,
+      "Engulfing": eng_ok,
+      "Strong displacement": disp,
+    }
+    weights={"M15 directional structure":2,"CRT liquidity sweep":3,"CRT close/reclaim":2,"ICT liquidity":2,
+              "Supply/Demand":2,"Premium/Discount":1,"M1/M5 MSS":3,"Order Block/FVG":2,"Stochastic":1,
+              "Engulfing":3,"Strong displacement":1}
+    score=sum(weights[k] for k,v in checks.items() if v)
+    mandatory=sweep and reclaim and mss_ok and eng_ok
+    qualified=raw_side in ("BUY","SELL") and score>=17 and mandatory
+    return {
+      "qualified":qualified,"score":score,"max_score":22,
+      "side":raw_side if qualified else "WAIT","raw_side":raw_side,
+      "stochastic":st,"stoch_buy_reached":st_buy,"stoch_sell_reached":st_sell,
+      "mandatory":mandatory,"checks":checks,
+      "entry":m1[-1].c if qualified else None,
+      "crt":{"high":crt.h,"low":crt.l},
+      "m5_sweep":{"high":sweep_candle.h,"low":sweep_candle.l,"close":sweep_candle.c},
+      "reason":"Qualified 17/22 + mandatory gates" if qualified else "Conditions not qualified"
+    }
