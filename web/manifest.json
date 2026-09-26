@@ -1,0 +1,9 @@
+{
+  "name":"L.Mnisi Trading",
+  "short_name":"L.Mnisi",
+  "start_url":"./index.html",
+  "display":"standalone",
+  "background_color":"#050505",
+  "theme_color":"#080808",
+  "icons":[]
+}
