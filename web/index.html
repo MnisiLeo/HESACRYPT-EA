@@ -1,187 +1,66 @@
 <!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#080808">
-<title>L.Mnisi — Trading Dashboard</title>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b0b0b"><link rel="manifest" href="manifest.json">
+<title>LMnisi Trading</title>
 <style>
-:root{
-  --gold:#f4b51b; --gold2:#ffd45a; --green:#22d879; --red:#ff5d68;
-  --glass:rgba(5,7,10,.72); --line:rgba(244,181,27,.38);
-  --text:#f7f7f7; --muted:#a9abb2;
-}
-*{box-sizing:border-box}
-html,body{margin:0;min-height:100%;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:#080808;color:var(--text)}
-body{overflow-x:hidden}
-.app{
-  min-height:100vh; position:relative; isolation:isolate;
-  background:
-    linear-gradient(180deg,rgba(0,0,0,.30),rgba(0,0,0,.74) 54%,#050505 92%),
-    url("assets/lmnisibg.png") center top/cover fixed no-repeat;
-}
-.app:after{
-  content:"";position:fixed;inset:0;z-index:-1;
-  background:linear-gradient(90deg,rgba(0,0,0,.38),transparent 48%,rgba(0,0,0,.2));
-  pointer-events:none
-}
-header{padding:20px 18px 8px;display:flex;align-items:flex-start;justify-content:space-between}
-.brand{font-family:cursive;font-size:42px;line-height:.9;font-weight:800;color:var(--gold2);text-shadow:0 2px 14px #000}
-.brand small{display:block;font:600 10px/1.4 system-ui;letter-spacing:5px;color:#fff;margin-top:12px}
-.icons{display:flex;gap:10px}
-.icon{width:42px;height:42px;border:1px solid rgba(255,255,255,.22);border-radius:14px;background:rgba(0,0,0,.35);display:grid;place-items:center;font-size:21px;backdrop-filter:blur(10px)}
-main{max-width:920px;margin:auto;padding:10px 14px 100px}
-.grid{display:grid;grid-template-columns:1.15fr .85fr;gap:10px}
-.card{
-  border:1px solid rgba(255,255,255,.13);border-radius:17px;background:var(--glass);
-  box-shadow:0 10px 30px rgba(0,0,0,.35);backdrop-filter:blur(12px);
-  padding:14px;position:relative;overflow:hidden
-}
-.card.gold{border-color:var(--line);box-shadow:0 0 24px rgba(244,181,27,.08)}
-.label{font-size:12px;color:#c5c7ce;letter-spacing:.4px}
-.value{font-size:26px;font-weight:800;margin-top:5px}
-.muted{color:var(--muted)}
-.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.status-dot{width:9px;height:9px;border-radius:50%;background:var(--green);display:inline-block;box-shadow:0 0 12px var(--green);margin-right:7px}
-input,select,button{
-  width:100%;border-radius:11px;border:1px solid rgba(255,255,255,.16);
-  background:rgba(0,0,0,.48);color:#fff;padding:12px;font-size:15px;outline:none
-}
-button{cursor:pointer;font-weight:800}
-.goldbtn{background:linear-gradient(135deg,#b77b00,var(--gold));color:#090909;border:0}
-.balance{font-size:36px;font-weight:850;margin-top:4px}
-.up{color:var(--green)}
-.score{display:flex;align-items:center;justify-content:space-between;gap:15px}
-.scoreNum{font-size:48px;font-weight:900;color:var(--green)}
-.scoreRing{width:78px;height:78px;border-radius:50%;display:grid;place-items:center;border:8px solid rgba(255,255,255,.12);position:relative}
-.scoreRing:before{content:"";position:absolute;inset:-8px;border-radius:50%;border:8px solid var(--green);border-left-color:transparent;transform:rotate(25deg)}
-.signal{font-size:29px;font-weight:900;color:var(--green)}
-.controls{display:grid;gap:8px}
-.control-title{font-weight:700}.arrow{color:#fff;font-size:22px}
-.switch{display:flex;align-items:center;justify-content:space-between}
-.toggle{width:54px;height:29px;border-radius:20px;background:#222;padding:3px}
-.toggle i{display:block;width:23px;height:23px;background:#777;border-radius:50%;transition:.2s}
-.toggle.on{background:var(--green)} .toggle.on i{background:white;transform:translateX(25px)}
-.conditions{display:grid;grid-template-columns:repeat(7,1fr);gap:0;border-top:1px solid rgba(255,255,255,.12)}
-.cond{padding:11px 5px;text-align:center;border-right:1px solid rgba(255,255,255,.10);font-size:11px}
-.cond:last-child{border:0}.cond b{display:block;font-size:11px;margin-top:5px}.check{color:var(--green);font-size:17px}
-.nav{position:fixed;bottom:0;left:0;right:0;z-index:20;background:rgba(3,3,3,.92);border-top:1px solid rgba(244,181,27,.22);backdrop-filter:blur(16px)}
-.navin{max-width:920px;margin:auto;display:grid;grid-template-columns:repeat(5,1fr);padding:7px 8px calc(7px + env(safe-area-inset-bottom))}
-.nav button{border:0;background:none;padding:8px 2px;color:#9b9da5;font-size:11px}
-.nav button.active{color:var(--gold2)} .nav span{display:block;font-size:20px;margin-bottom:3px}
-.section{margin-top:10px}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-small{color:#8e929d}
-@media(max-width:700px){
-  .grid{grid-template-columns:1fr}
-  .brand{font-size:37px}
-  .conditions{grid-template-columns:repeat(4,1fr)}
-  .cond:nth-child(4){border-right:0}
-  .conditions .cond{border-bottom:1px solid rgba(255,255,255,.08)}
-}
-</style>
-</head>
-<body>
-<div class="app">
-<header>
-  <div class="brand">L.Mnisi<small>TRADING THE FUTURE • SELF MADE</small></div>
-  <div class="icons"><div class="icon">♧</div><div class="icon">⚙</div></div>
-</header>
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,Arial;background:#070707;color:#fff}
+body:before{content:"";position:fixed;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.94),rgba(0,0,0,.58)),url('assets/lmnisibg.png') center/cover no-repeat;z-index:-2}
+body:after{content:"";position:fixed;inset:0;background:rgba(201,157,54,.07);z-index:-1}
+button,input,select{font:inherit}.shell{max-width:520px;margin:auto;min-height:100vh;padding:18px 14px 88px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}.brand{font-weight:900;letter-spacing:2px;color:#d8ae4a}.brand small{display:block;color:#aaa;letter-spacing:1px;font-size:10px}
+.pill{padding:7px 10px;border:1px solid #444;border-radius:999px;background:#111b;font-size:11px}.ok{color:#78e08f}.bad{color:#ff7777}
+.card{background:rgba(12,12,12,.78);border:1px solid rgba(218,174,74,.24);border-radius:18px;padding:15px;margin:10px 0;backdrop-filter:blur(12px);box-shadow:0 12px 40px #0007}
+.row{display:flex;gap:10px;align-items:center}.between{justify-content:space-between}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.label{font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}.value{font-size:22px;font-weight:800}.gold{color:#d8ae4a}.score{font-size:42px;font-weight:900}.signal{font-size:30px;font-weight:900}.buy{color:#62df8c}.sell{color:#ff7272}.wait{color:#ddd}
+select,input{width:100%;background:#0b0b0b;color:#fff;border:1px solid #444;border-radius:10px;padding:11px}
+button{border:0;border-radius:11px;padding:12px 14px;background:#d8ae4a;color:#080808;font-weight:800}.secondary{background:#1c1c1c;color:#fff;border:1px solid #444}.danger{background:#8e2424;color:#fff}.wide{width:100%}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.checks{display:grid;grid-template-columns:1fr 1fr;gap:7px}.check{padding:9px;border-radius:9px;background:#111;border:1px solid #292929;font-size:11px}.pass{border-color:#427b51;color:#8be59e}.fail{border-color:#703f3f;color:#ff9a9a}
+nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(520px,100%);display:grid;grid-template-columns:repeat(4,1fr);background:#080808ee;border-top:1px solid #333;padding:8px 8px max(8px,env(safe-area-inset-bottom));z-index:10}
+nav button{background:transparent;color:#aaa;padding:8px 4px;font-size:10px}nav button.active{color:#d8ae4a}
+.hidden{display:none}.muted{color:#aaa;font-size:12px;line-height:1.5}.section{margin-top:18px;font-size:12px;color:#aaa;text-transform:uppercase;letter-spacing:1px}
+.toast{position:fixed;top:12px;left:50%;transform:translateX(-50%);background:#222;border:1px solid #555;border-radius:10px;padding:10px 14px;display:none;z-index:20}
+</style></head>
+<body><main class="shell">
+<header class="top"><div class="brand">L.MNISI<small>ALGORITHMIC TRADING</small></div><div id="conn" class="pill bad">● CLOUD OFFLINE</div></header>
 
-<main>
-  <div class="grid">
-    <div class="card gold">
-      <div class="row"><div><span class="status-dot"></span><b id="connection">MT5 Connected</b></div><span class="arrow">›</span></div>
-      <div class="muted" style="margin-top:8px">Broker: <b id="broker">Exness</b></div>
-    </div>
+<section id="dashboard">
+<div class="card"><div class="row between"><div><div class="label">Account</div><div id="account" class="value">—</div></div><div><div class="label">Mode</div><select id="mode"><option>DEMO</option><option>LIVE</option></select></div></div></div>
+<div class="card"><div class="grid"><div><div class="label">Pair</div><select id="pair"><option>XAUUSD</option><option>EURUSD</option><option>GBPUSD</option><option>USDJPY</option><option>BTCUSD</option></select></div><div><div class="label">Lot size</div><input id="lot" type="number" min=".01" step=".01" value=".01"></div></div></div>
+<div class="card"><div class="row between"><div><div class="label">Strategy score</div><div id="score" class="score">0<span style="font-size:16px;color:#777">/22</span></div></div><div><div class="label">Signal</div><div id="signal" class="signal wait">WAIT</div></div></div></div>
+<div class="card"><div class="label">M15 → M5 → M1 strategy</div><div id="checks" class="checks"></div><div class="muted" id="stoch">Stochastic: — (BUY ≤5 / SELL ≥95)</div></div>
+<div class="card actions"><button id="start">START ENGINE</button><button id="stop" class="secondary">STOP</button><button id="refresh" class="secondary">REFRESH</button><button id="emergency" class="danger">EMERGENCY CLOSE</button></div>
+<div class="card"><div class="grid"><div><div class="label">Balance</div><div id="bal" class="value">—</div></div><div><div class="label">Equity</div><div id="eq" class="value">—</div></div></div></div>
+</section>
 
-    <div class="controls">
-      <div class="card row"><div><div class="label">Choose Pair</div><div class="control-title" id="pairText">XAUUSD</div></div><span class="arrow">›</span></div>
-      <div class="card">
-        <div class="label">Lot Size</div>
-        <input id="lots" type="number" min=".01" step=".01" value=".10">
-      </div>
-    </div>
-  </div>
-
-  <div class="section card gold">
-    <div class="label">Account Balance</div>
-    <div class="balance" id="balance">$542.36</div>
-    <div class="up" id="daily">+12.48 (2.35%) Today</div>
-  </div>
-
-  <div class="section grid">
-    <div class="card">
-      <div class="label">Strategy Score</div>
-      <div class="score">
-        <div><div class="scoreNum" id="score">19</div><span class="muted">/ 22</span></div>
-        <div class="scoreRing"><b id="percent">86%</b></div>
-      </div>
-      <div class="up" id="eligibility">✓ Entry Conditions Met</div>
-    </div>
-
-    <div class="card">
-      <div class="label">Current Signal</div>
-      <div class="signal" id="signal">BUY</div>
-      <div class="muted" id="signalInfo">XAUUSD • M1 • Score: 19/22</div>
-    </div>
-  </div>
-
-  <div class="section card">
-    <div class="row"><b>Live Strategy Analysis</b><small>17/22 minimum</small></div>
-    <div class="conditions" id="conditions">
-      <div class="cond">CRT<span class="check">✓</span><b>3/3</b></div>
-      <div class="cond">ICT<span class="check">✓</span><b>2/2</b></div>
-      <div class="cond">SMC<span class="check">✓</span><b>3/3</b></div>
-      <div class="cond">S&amp;D<span class="check">✓</span><b>2/2</b></div>
-      <div class="cond">S/R<span class="check">✓</span><b>2/2</b></div>
-      <div class="cond">Stochastic<span class="check">✓</span><b>1/1</b></div>
-      <div class="cond">Engulfing<span class="check">✓</span><b>3/3</b></div>
-    </div>
-  </div>
-
-  <div class="section two">
-    <button class="goldbtn" onclick="toggleEA()">⚡ Start / Stop EA</button>
-    <button onclick="runAnalysis()">↻ Refresh Analysis</button>
-  </div>
-
-  <div class="section card">
-    <div class="row"><b>Trading Controls</b><small id="eaState">EA RUNNING</small></div>
-    <div class="two" style="margin-top:9px">
-      <div><label class="label">Select Pair</label><select id="pair" onchange="syncPair()"><option>XAUUSD</option><option>EURUSD</option><option>GBPUSD</option><option>USDJPY</option><option>BTCUSD</option></select></div>
-      <div><label class="label">Execution</label><select id="mode"><option>DEMO</option><option>LIVE</option></select></div>
-    </div>
-    <div class="switch" style="margin-top:12px"><span>Auto-entry at 17/22+</span><div class="toggle on" id="toggle"><i></i></div></div>
-  </div>
-
-  <div class="section card">
-    <div class="label">System principle</div>
-    <b>LOCATION → LIQUIDITY → STRUCTURE → MOMENTUM → ENGULFING → EXECUTION</b>
-    <small style="display:block;margin-top:8px">The phone is the control interface. The online execution bridge handles MT5 connectivity.</small>
-  </div>
+<section id="positions" class="hidden"><div class="section">Open positions</div><div class="card"><div class="muted">Positions are displayed here when the cloud broker connection is active.</div><div id="pos"></div></div><div class="section">Trade history</div><div class="card"><div id="hist" class="muted">No history loaded.</div></div></section>
+<section id="settings" class="hidden"><div class="section">Connection</div><div class="card"><div class="label">Cloud API</div><input id="api" placeholder="https://your-lmnisi-server.example.com"><div class="label" style="margin-top:10px">App key</div><input id="appkey" type="password" placeholder="Render LMNISI_APP_KEY"><div class="muted">The browser only stores the L.Mnisi app key needed to call your own cloud API. MetaApi and MT5 credentials remain on the server.</div><br><button class="wide" id="save">SAVE CONNECTION</button></div><div class="card"><div class="label">Safety</div><p class="muted">LIVE trading should only be enabled after demo/backtest validation. The strategy requires CRT sweep/reclaim, MSS and engulfing in addition to the 17/22 score.</p></div></section>
+<section id="about" class="hidden"><div class="section">About LMnisi</div><div class="card"><h2>LMnisi Trading Engine</h2><p class="muted">Cloud-first M15 → M5 → M1 strategy dashboard combining CRT, ICT, SMC, Supply/Demand, Support/Resistance location, Stochastic and Engulfing confirmation.</p><p class="muted">Stochastic trigger: BUY at 5 or below; SELL at 95 or above. Qualification: at least 17/22 plus mandatory confirmations.</p></div></section>
+<nav><button class="active" data-tab="dashboard">⌂<br>Dashboard</button><button data-tab="positions">▣<br>Trades</button><button data-tab="settings">⚙<br>Settings</button><button data-tab="about">ⓘ<br>About</button></nav>
+<div id="toast" class="toast"></div>
 </main>
-
-<div class="nav"><div class="navin">
-  <button class="active"><span>⌂</span>Home</button>
-  <button><span>▥</span>Chart</button>
-  <button><span>♛</span>L.Mnisi</button>
-  <button><span>▤</span>History</button>
-  <button><span>♙</span>Profile</button>
-</div></div>
-</div>
-
 <script>
-const API=localStorage.getItem("API_URL")||"";
-let running=true;
-function syncPair(){document.getElementById("pairText").textContent=document.getElementById("pair").value;document.getElementById("signalInfo").textContent=document.getElementById("pair").value+" • M1 • Score: "+document.getElementById("score").textContent}
-function toggleEA(){running=!running;document.getElementById("eaState").textContent=running?"EA RUNNING":"EA STOPPED";document.getElementById("toggle").classList.toggle("on",running)}
-async function runAnalysis(){
- if(!API){document.getElementById("connection").textContent="MT5 Bridge Not Configured";return}
+const $=id=>document.getElementById(id); let API=localStorage.getItem('lmnisi_api')||location.origin; let KEY=localStorage.getItem('lmnisi_key')||'change-me';
+const weights={"M15 directional structure":2,"CRT liquidity sweep":3,"CRT close/reclaim":2,"ICT liquidity":2,"Supply/Demand":2,"Premium/Discount":1,"M1/M5 MSS":3,"Order Block/FVG":2,"Stochastic":1,"Engulfing":3,"Strong displacement":1};
+function toast(t){$('toast').textContent=t;$('toast').style.display='block';setTimeout(()=>$('toast').style.display='none',2200)}
+function headers(){return {'Content-Type':'application/json','x-app-key':KEY}}
+async function get(path){let r=await fetch(API+path,{headers:headers()});if(!r.ok)throw Error(await r.text());return r.json()}
+async function post(path,b){let r=await fetch(API+path,{method:'POST',headers:headers(),body:JSON.stringify(b)});if(!r.ok)throw Error(await r.text());return r.json()}
+async function refresh(){
  try{
-  const r=await fetch(API+"/health"); const d=await r.json();
-  document.getElementById("connection").textContent=d.ok?"MT5 Connected":"Disconnected";
- }catch(e){document.getElementById("connection").textContent="Offline"}
+  let s=await get('/api/status'),a=await get('/api/account');
+  $('conn').textContent=s.connected?'● MT5 CONNECTED':'● CLOUD '+(s.status||'WAITING');$('conn').className='pill '+(s.connected?'ok':'bad');
+  $('account').textContent=s.pair+' • '+s.lot;$('api').value=API;$('appkey').value=KEY;$('mode').value=s.mode;$('pair').value=s.pair;$('lot').value=s.lot;
+  $('score').innerHTML=(s.score||0)+'<span style="font-size:16px;color:#777">/22</span>';
+  $('signal').textContent=s.signal||'WAIT';$('signal').className='signal '+(s.signal==='BUY'?'buy':s.signal==='SELL'?'sell':'wait');
+  $('bal').textContent=Number(a.balance||0).toFixed(2);$('eq').textContent=Number(a.equity||0).toFixed(2);$('stoch').textContent='Stochastic: '+(s.stochastic??'—')+' (BUY ≤5 / SELL ≥95) • '+(s.status||'')+' • '+(s.execution_status||'IDLE');
+  $('checks').innerHTML=Object.entries(weights).map(([k])=>'<div class="check '+(s.checks?.[k]?'pass':'fail')+'">'+(s.checks?.[k]?'✓':'○')+' '+k+'</div>').join('');
+  $('stoch').textContent='Stochastic: '+(s.stochastic??'—')+' (BUY ≤5 / SELL ≥95)';
+ }catch(e){$('conn').textContent='● CLOUD OFFLINE';$('conn').className='pill bad'}
 }
-</script>
-</body>
-</html>
+$('start').onclick=async()=>{try{await post('/api/control',{running:true,mode:$('mode').value,pair:$('pair').value,lot:Number($('lot').value)});toast('Engine started');refresh()}catch(e){toast('Cloud not connected')}}
+$('stop').onclick=async()=>{try{await post('/api/control',{running:false});toast('Engine stopped');refresh()}catch(e){toast('Cloud not connected')}}
+$('refresh').onclick=refresh;$('emergency').onclick=async()=>{try{await post('/api/emergency-close',{});toast('Emergency close requested')}catch(e){toast('Cloud not connected')}}
+$('save').onclick=()=>{API=$('api').value.trim()||location.origin;KEY=$('appkey').value.trim()||KEY;localStorage.setItem('lmnisi_api',API);localStorage.setItem('lmnisi_key',KEY);toast('Connection saved');refresh()}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));b.classList.add('active');['dashboard','positions','settings','about'].forEach(x=>$(x).classList.add('hidden'));$(b.dataset.tab).classList.remove('hidden');if(b.dataset.tab==='positions'){get('/api/positions').then(x=>$('pos').textContent=JSON.stringify(x)).catch(()=>{});get('/api/history').then(x=>$('hist').textContent=JSON.stringify(x)).catch(()=>{})}})
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{}); refresh(); setInterval(refresh,5000);
+</script></body></html>
