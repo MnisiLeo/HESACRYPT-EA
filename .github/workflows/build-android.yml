@@ -29,7 +29,7 @@ jobs:
           echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
           echo "$ANDROID_SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
 
-      - name: Install Android SDK packages
+      - name: Install Android SDK
         run: |
           SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
@@ -41,9 +41,21 @@ jobs:
           unzip -q gradle-8.7-bin.zip -d "$HOME"
           echo "$HOME/gradle-8.7/bin" >> "$GITHUB_PATH"
 
-      - name: Build Android APK
+      - name: Verify Android project
+        working-directory: android
         run: |
-          gradle --project-dir android :app:assembleRelease --stacktrace --no-daemon
+          test -f settings.gradle
+          test -f build.gradle
+          test -f app/build.gradle
+          test -f app/src/main/AndroidManifest.xml
+
+      - name: Build APK
+        working-directory: android
+        run: |
+          gradle :app:assembleRelease \
+            --no-daemon \
+            --stacktrace \
+            --console=plain
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
