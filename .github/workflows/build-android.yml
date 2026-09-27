@@ -17,11 +17,43 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Extract L.Mnisi package if needed
+        shell: bash
+        run: |
+          if [ ! -f "android/settings.gradle" ]; then
+            ZIP_FILE=$(find . -maxdepth 2 -type f -iname "*.zip" | head -n 1)
+
+            if [ -z "$ZIP_FILE" ]; then
+              echo "ERROR: android/settings.gradle was not found and no ZIP package exists."
+              exit 1
+            fi
+
+            echo "Extracting package: $ZIP_FILE"
+            mkdir -p .lmnisi_extract
+            unzip -o "$ZIP_FILE" -d .lmnisi_extract
+
+            if [ -f ".lmnisi_extract/android/settings.gradle" ]; then
+              cp -R .lmnisi_extract/android .
+            else
+              ANDROID_DIR=$(find .lmnisi_extract -type f -path "*/android/settings.gradle" -print -quit | xargs -r dirname)
+
+              if [ -z "$ANDROID_DIR" ]; then
+                echo "ERROR: Android project was not found inside the ZIP."
+                exit 1
+              fi
+
+              cp -R "$ANDROID_DIR" android
+            fi
+          fi
+
+          echo "Android project:"
+          find android -maxdepth 5 -type f | sort
+
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: "17"
 
       - name: Configure Android SDK
         run: |
@@ -41,26 +73,12 @@ jobs:
           unzip -q gradle-8.7-bin.zip -d "$HOME"
           echo "$HOME/gradle-8.7/bin" >> "$GITHUB_PATH"
 
-      - name: Verify Android Gradle project
+      - name: Build L.Mnisi APK
         working-directory: android
         run: |
-          test -f settings.gradle
-          test -f build.gradle
-          test -f app/build.gradle
-          grep -q "com.android.application" build.gradle
-          grep -q "com.android.application" app/build.gradle
-
-      - name: Build Release APK
-        working-directory: android
-        run: |
-          gradle :app:tasks --all --console=plain
           gradle :app:assembleRelease --no-daemon --stacktrace --console=plain
 
-      - name: Find APK
-        run: |
-          find android/app/build/outputs -type f -name "*.apk" -print
-
-      - name: Upload APK
+      - name: Upload L.Mnisi APK
         uses: actions/upload-artifact@v4
         with:
           name: LMnisi-Android-APK
