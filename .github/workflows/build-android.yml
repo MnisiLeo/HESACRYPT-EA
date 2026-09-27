@@ -41,32 +41,28 @@ jobs:
           unzip -q gradle-8.7-bin.zip -d "$HOME"
           echo "$HOME/gradle-8.7/bin" >> "$GITHUB_PATH"
 
-      - name: Locate Android project
+      - name: Verify Android Gradle project
+        working-directory: android
         run: |
-          echo "Repository contents:"
-          find . -maxdepth 3 -type f | sort
+          test -f settings.gradle
+          test -f build.gradle
+          test -f app/build.gradle
+          grep -q "com.android.application" build.gradle
+          grep -q "com.android.application" app/build.gradle
 
-      - name: Build APK
+      - name: Build Release APK
+        working-directory: android
         run: |
-          if [ -f "android/settings.gradle" ]; then
-            cd android
-          elif [ -f "settings.gradle" ]; then
-            cd .
-          else
-            echo "ERROR: Android Gradle project files were not found."
-            exit 1
-          fi
+          gradle :app:tasks --all --console=plain
+          gradle :app:assembleRelease --no-daemon --stacktrace --console=plain
 
-          gradle :app:assembleRelease \
-            --no-daemon \
-            --stacktrace \
-            --console=plain
+      - name: Find APK
+        run: |
+          find android/app/build/outputs -type f -name "*.apk" -print
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: LMnisi-Android-APK
-          path: |
-            android/app/build/outputs/apk/release/*.apk
-            app/build/outputs/apk/release/*.apk
+          path: android/app/build/outputs/apk/release/*.apk
           if-no-files-found: error
