@@ -3,92 +3,663 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0b0b0d">
+<meta name="theme-color" content="#09090b">
 <link rel="manifest" href="/manifest.json">
 <title>L.Mnisi EA</title>
+
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,sans-serif;background:#09090b;color:#f5f5f5;min-height:100vh}
-body:before{content:"";position:fixed;inset:0;background:linear-gradient(120deg,rgba(0,0,0,.86),rgba(10,10,12,.72)),url('/assets/lmnisibg.png') center/cover;opacity:.9;z-index:-1}
-.app{max-width:520px;margin:auto;min-height:100vh;padding:18px 14px 88px}.brand{display:flex;align-items:center;justify-content:space-between}
-.logo{font-size:25px;font-weight:900;letter-spacing:.08em}.gold{color:#d9b45b}.pill{border:1px solid #4a3b20;border-radius:20px;padding:6px 10px;font-size:11px}
-.card{background:rgba(18,18,21,.78);border:1px solid rgba(217,180,91,.18);border-radius:18px;padding:15px;margin-top:12px;backdrop-filter:blur(12px);box-shadow:0 10px 30px #0008}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.metric{font-size:12px;color:#aaa}.value{font-size:22px;font-weight:800;margin-top:4px}
-select,input,button{width:100%;border-radius:12px;padding:12px;background:#111116;color:#fff;border:1px solid #39393f}button{font-weight:800;cursor:pointer}.primary{background:#c9a34e;color:#111;border:0}.danger{background:#38181c}.row{display:flex;gap:9px}.row>*{flex:1}
-.score{font-size:42px;font-weight:900;text-align:center}.signal{text-align:center;font-size:28px;font-weight:900;padding:8px}.buy{color:#63d391}.sell{color:#ff7171}.muted{color:#999;font-size:12px}.bar{height:8px;background:#27272c;border-radius:10px;overflow:hidden}.fill{height:100%;width:0;background:#d9b45b}
-.status{display:flex;align-items:center;gap:7px;font-size:12px}.dot{width:8px;height:8px;border-radius:50%;background:#777}.ok{background:#54d68b}.nav{position:fixed;bottom:0;left:0;right:0;max-width:520px;margin:auto;background:#0c0c0feF;border-top:1px solid #29292d;padding:10px 14px;display:flex;justify-content:space-around;font-size:11px}
-label{display:block;font-size:11px;color:#aaa;margin:8px 0 5px}
-pre{white-space:pre-wrap;font-size:10px;color:#aaa;max-height:180px;overflow:auto}
-</style></head>
-<body>
-<main class="app">
-<header class="brand"><div class="logo">L<span class="gold">.</span>MNISI <span class="gold">EA</span></div><div id="conn" class="pill">OFFLINE</div></header>
-
-<section class="card">
-<div class="grid">
-<div><div class="metric">BALANCE</div><div id="balance" class="value">—</div></div>
-<div><div class="metric">EQUITY</div><div id="equity" class="value">—</div></div>
-</div>
-</section>
-
-<section class="card">
-<label>Trading Pair</label><select id="symbol"><option>XAUUSD</option><option>EURUSD</option><option>GBPUSD</option><option>USDJPY</option><option>BTCUSD</option></select>
-<label>Lot Size</label><input id="lot" type="number" value="0.01" step="0.01" min="0.01">
-<div class="row" style="margin-top:10px"><button id="demo" class="primary">DEMO</button><button id="live">LIVE</button></div>
-<div class="row" style="margin-top:10px"><button id="start" class="primary">START ENGINE</button><button id="stop">STOP</button></div>
-</section>
-
-<section class="card">
-<div class="metric">STRATEGY SCORE</div><div id="score" class="score">0 / 22</div><div class="bar"><div id="fill" class="fill"></div></div>
-<div id="signal" class="signal">WAITING</div>
-<div id="reason" class="muted" style="text-align:center">Connect the cloud engine to begin analysis.</div>
-</section>
-
-<section class="card">
-<div class="grid">
-<div class="status"><span id="d1" class="dot"></span>M15 BIAS</div>
-<div class="status"><span id="d2" class="dot"></span>CRT SWEEP</div>
-<div class="status"><span id="d3" class="dot"></span>MSS</div>
-<div class="status"><span id="d4" class="dot"></span>ENGULFING</div>
-<div class="status"><span id="d5" class="dot"></span>STOCH</div>
-<div class="status"><span id="d6" class="dot"></span>DISPLACEMENT</div>
-</div>
-</section>
-
-<section class="card">
-<div class="metric">OPEN POSITIONS</div><pre id="positions">—</pre>
-</section>
-
-<section class="card">
-<button id="close" class="danger">EMERGENCY CLOSE ALL</button>
-</section>
-
-<section class="card">
-<div class="metric">ENGINE LOG</div><pre id="log">Starting…</pre>
-</section>
-</main>
-<nav class="nav"><span>Dashboard</span><span>Strategy</span><span>Trades</span><span>Settings</span></nav>
-<script>
-const $=id=>document.getElementById(id);
-let api=localStorage.getItem('lm_api')||location.origin;
-let token=localStorage.getItem('lm_token')||'';
-async function call(path,opt={}){opt.headers={...(opt.headers||{}),...(token?{'x-api-key':token}:{})};let r=await fetch(api+path,opt);if(!r.ok)throw Error(await r.text());return r.json()}
-function setDot(id,on){$(id).className='dot '+(on?'ok':'')}
-async function refresh(){
- try{
-  const s=await call('/api/status'); $('conn').textContent=s.connected?'CONNECTED':'SERVER ONLINE'; $('conn').style.color=s.connected?'#63d391':'#d9b45b';
-  $('balance').textContent=s.balance??'—';$('equity').textContent=s.equity??'—';
-  $('score').textContent=`${s.score||0} / 22`;$('fill').style.width=`${Math.min(100,(s.score||0)/22*100)}%`;
-  $('signal').textContent=s.signal||'WAITING';$('signal').className='signal '+(s.signal==='BUY'?'buy':s.signal==='SELL'?'sell':'');
-  $('reason').textContent=s.reason||'Waiting for a valid setup.';
-  ['bias','sweep','mss','engulfing','stoch','displacement'].forEach((x,i)=>setDot('d'+(i+1),!!s[x]));
-  $('positions').textContent=JSON.stringify(s.positions||[],null,2);
-  $('log').textContent=(s.log||[]).join('\n');
- }catch(e){$('conn').textContent='OFFLINE';$('log').textContent=e.message}
+*{box-sizing:border-box}
+body{
+ margin:0;
+ font-family:Inter,system-ui,sans-serif;
+ background:#09090b;
+ color:#f5f5f5;
+ min-height:100vh
 }
-$('start').onclick=()=>call('/api/control',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'start'})}).then(refresh);
-$('stop').onclick=()=>call('/api/control',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'stop'})}).then(refresh);
-$('demo').onclick=()=>call('/api/control',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'mode',mode:'demo'})}).then(refresh);
-$('live').onclick=()=>call('/api/control',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({action:'mode',mode:'live'})}).then(refresh);
-$('close').onclick=()=>{if(confirm('Close all open positions?'))call('/api/close-all',{method:'POST'}).then(refresh)}
-setInterval(refresh,5000);refresh();
-</script></body></html>
+body:before{
+ content:"";
+ position:fixed;
+ inset:0;
+ background:
+ linear-gradient(120deg,rgba(0,0,0,.88),rgba(10,10,12,.72)),
+ url('/assets/lmnisibg.png') center/cover;
+ opacity:.9;
+ z-index:-1
+}
+.app{
+ max-width:520px;
+ margin:auto;
+ min-height:100vh;
+ padding:18px 14px 92px
+}
+.brand{
+ display:flex;
+ align-items:center;
+ justify-content:space-between
+}
+.logo{
+ font-size:25px;
+ font-weight:900;
+ letter-spacing:.08em
+}
+.gold{color:#d9b45b}
+.pill{
+ border:1px solid #4a3b20;
+ border-radius:20px;
+ padding:7px 11px;
+ font-size:11px
+}
+.card{
+ background:rgba(18,18,21,.84);
+ border:1px solid rgba(217,180,91,.18);
+ border-radius:18px;
+ padding:15px;
+ margin-top:12px;
+ backdrop-filter:blur(12px);
+ box-shadow:0 10px 30px #0008
+}
+.grid{
+ display:grid;
+ grid-template-columns:1fr 1fr;
+ gap:10px
+}
+.metric{
+ font-size:12px;
+ color:#aaa
+}
+.value{
+ font-size:22px;
+ font-weight:800;
+ margin-top:4px
+}
+label{
+ display:block;
+ font-size:11px;
+ color:#aaa;
+ margin:8px 0 5px
+}
+select,input,button{
+ width:100%;
+ border-radius:12px;
+ padding:12px;
+ background:#111116;
+ color:#fff;
+ border:1px solid #39393f;
+ font:inherit
+}
+button{
+ font-weight:800;
+ cursor:pointer
+}
+button:disabled{
+ opacity:.55
+}
+.primary{
+ background:#c9a34e;
+ color:#111;
+ border:0
+}
+.live{
+ border-color:#774040
+}
+.danger{
+ background:#38181c
+}
+.row{
+ display:flex;
+ gap:9px
+}
+.row>*{
+ flex:1
+}
+.score{
+ font-size:42px;
+ font-weight:900;
+ text-align:center
+}
+.signal{
+ text-align:center;
+ font-size:28px;
+ font-weight:900;
+ padding:8px
+}
+.buy{color:#63d391}
+.sell{color:#ff7171}
+.muted{
+ color:#999;
+ font-size:12px
+}
+.bar{
+ height:8px;
+ background:#27272c;
+ border-radius:10px;
+ overflow:hidden
+}
+.fill{
+ height:100%;
+ width:0;
+ background:#d9b45b;
+ transition:width .25s
+}
+.status{
+ display:flex;
+ align-items:center;
+ gap:7px;
+ font-size:12px
+}
+.dot{
+ width:8px;
+ height:8px;
+ border-radius:50%;
+ background:#777
+}
+.ok{background:#54d68b}
+.warn{background:#d9b45b}
+.nav{
+ position:fixed;
+ bottom:0;
+ left:0;
+ right:0;
+ max-width:520px;
+ margin:auto;
+ background:#0c0c0fee;
+ border-top:1px solid #29292d;
+ padding:10px 14px;
+ display:flex;
+ justify-content:space-around;
+ font-size:11px
+}
+pre{
+ white-space:pre-wrap;
+ font-size:10px;
+ color:#aaa;
+ max-height:180px;
+ overflow:auto
+}
+.small{
+ font-size:11px;
+ color:#aaa;
+ margin-top:7px
+}
+.toast{
+ position:fixed;
+ left:14px;
+ right:14px;
+ bottom:65px;
+ max-width:492px;
+ margin:auto;
+ background:#17171b;
+ border:1px solid #444;
+ border-radius:12px;
+ padding:12px;
+ font-size:12px;
+ display:none;
+ z-index:20
+}
+</style>
+</head>
+
+<body>
+
+<main class="app">
+
+<header class="brand">
+ <div class="logo">
+  L<span class="gold">.</span>MNISI
+  <span class="gold">EA</span>
+ </div>
+ <div id="conn" class="pill">CONNECTING</div>
+</header>
+
+<section class="card">
+ <div class="grid">
+  <div>
+   <div class="metric">BALANCE</div>
+   <div id="balance" class="value">—</div>
+  </div>
+  <div>
+   <div class="metric">EQUITY</div>
+   <div id="equity" class="value">—</div>
+  </div>
+ </div>
+</section>
+
+<section class="card">
+
+<label>Trading Pair</label>
+
+<select id="symbol">
+ <option>XAUUSD</option>
+ <option>EURUSD</option>
+ <option>GBPUSD</option>
+ <option>USDJPY</option>
+ <option>BTCUSD</option>
+</select>
+
+<label>Lot Size</label>
+
+<input
+ id="lot"
+ type="number"
+ value="0.01"
+ step="0.01"
+ min="0.01"
+>
+
+<div class="row" style="margin-top:10px">
+ <button id="demo" class="primary">DEMO</button>
+ <button id="live" class="live">LIVE</button>
+</div>
+
+<div class="row" style="margin-top:10px">
+ <button id="start" class="primary">START ENGINE</button>
+ <button id="stop">STOP</button>
+</div>
+
+<div id="execution" class="small">
+ Execution: IDLE
+</div>
+
+</section>
+
+<section class="card">
+
+<div class="metric">STRATEGY SCORE</div>
+
+<div id="score" class="score">0 / 22</div>
+
+<div class="bar">
+ <div id="fill" class="fill"></div>
+</div>
+
+<div id="signal" class="signal">
+ WAITING
+</div>
+
+<div id="reason" class="muted" style="text-align:center">
+ Connect the cloud engine to begin analysis.
+</div>
+
+</section>
+
+<section class="card">
+
+<div class="grid">
+
+<div class="status">
+ <span id="d1" class="dot"></span>
+ M15 BIAS
+</div>
+
+<div class="status">
+ <span id="d2" class="dot"></span>
+ CRT SWEEP
+</div>
+
+<div class="status">
+ <span id="d3" class="dot"></span>
+ MSS
+</div>
+
+<div class="status">
+ <span id="d4" class="dot"></span>
+ ENGULFING
+</div>
+
+<div class="status">
+ <span id="d5" class="dot"></span>
+ STOCH
+</div>
+
+<div class="status">
+ <span id="d6" class="dot"></span>
+ DISPLACEMENT
+</div>
+
+</div>
+
+</section>
+
+<section class="card">
+ <div class="metric">OPEN POSITIONS</div>
+ <pre id="positions">—</pre>
+</section>
+
+<section class="card">
+ <button id="close" class="danger">
+  EMERGENCY CLOSE ALL
+ </button>
+</section>
+
+<section class="card">
+ <div class="metric">ENGINE LOG</div>
+ <pre id="log">Connecting…</pre>
+</section>
+
+</main>
+
+<nav class="nav">
+ <span>Dashboard</span>
+ <span>Strategy</span>
+ <span>Trades</span>
+ <span>Settings</span>
+</nav>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+let requestBusy = false;
+
+function toast(message){
+ $('toast').textContent = message;
+ $('toast').style.display = 'block';
+
+ clearTimeout(window.toastTimer);
+
+ window.toastTimer = setTimeout(
+  () => {
+   $('toast').style.display = 'none';
+  },
+  3500
+ );
+}
+
+async function api(path, options = {}){
+ const config = {
+  ...options,
+  headers:{
+   'Content-Type':'application/json',
+   ...(options.headers || {})
+  }
+ };
+
+ const response = await fetch(
+  path,
+  config
+ );
+
+ const text = await response.text();
+
+ let data;
+
+ try{
+  data = text ? JSON.parse(text) : {};
+ }catch{
+  data = {
+   detail:text || `HTTP ${response.status}`
+  };
+ }
+
+ if(!response.ok){
+  throw new Error(
+   data.detail ||
+   `HTTP ${response.status}`
+  );
+ }
+
+ return data;
+}
+
+function setDot(id, enabled){
+ $(id).className =
+  'dot ' + (enabled ? 'ok' : '');
+}
+
+function render(s){
+
+ const metaapiConnected =
+  !!s.connected;
+
+ if(metaapiConnected){
+  $('conn').textContent = 'MT5 CONNECTED';
+  $('conn').style.color = '#63d391';
+ }else if(s.api_online){
+  $('conn').textContent = 'CLOUD ONLINE';
+  $('conn').style.color = '#d9b45b';
+ }else{
+  $('conn').textContent = 'OFFLINE';
+  $('conn').style.color = '#ff7171';
+ }
+
+ $('balance').textContent =
+  s.balance == null
+   ? '—'
+   : s.balance;
+
+ $('equity').textContent =
+  s.equity == null
+   ? '—'
+   : s.equity;
+
+ if(s.symbol){
+  $('symbol').value = s.symbol;
+ }
+
+ if(s.lot){
+  $('lot').value = s.lot;
+ }
+
+ $('score').textContent =
+  `${s.score || 0} / 22`;
+
+ $('fill').style.width =
+  `${Math.min(
+   100,
+   ((s.score || 0) / 22) * 100
+  )}%`;
+
+ $('signal').textContent =
+  s.signal || 'WAITING';
+
+ $('signal').className =
+  'signal ' +
+  (
+   s.signal === 'BUY'
+    ? 'buy'
+    : s.signal === 'SELL'
+     ? 'sell'
+     : ''
+  );
+
+ $('reason').textContent =
+  s.reason ||
+  'Waiting for a valid setup.';
+
+ $('execution').textContent =
+  'Execution: ' +
+  (s.execution_status || 'IDLE');
+
+ setDot('d1', !!s.bias);
+ setDot('d2', !!s.sweep);
+ setDot('d3', !!s.mss);
+ setDot('d4', !!s.engulfing);
+ setDot('d5', !!s.stoch);
+ setDot('d6', !!s.displacement);
+
+ $('positions').textContent =
+  JSON.stringify(
+   s.positions || [],
+   null,
+   2
+  );
+
+ const logs = s.log || [];
+
+ $('log').textContent =
+  logs.length
+   ? logs.join('\n')
+   : (
+      s.last_error ||
+      'Cloud engine ready.'
+     );
+}
+
+async function refresh(){
+
+ try{
+  const state =
+   await api('/api/status');
+
+  render(state);
+
+ }catch(error){
+
+  $('conn').textContent = 'OFFLINE';
+  $('conn').style.color = '#ff7171';
+
+  $('reason').textContent =
+   'Cloud API error: ' +
+   error.message;
+
+  $('log').textContent =
+   error.message;
+ }
+}
+
+async function control(
+ action,
+ extra = {}
+){
+
+ if(requestBusy){
+  return;
+ }
+
+ requestBusy = true;
+
+ try{
+
+  const state =
+   await api(
+    '/api/control',
+    {
+     method:'POST',
+     body:JSON.stringify({
+      action,
+      ...extra
+     })
+    }
+   );
+
+  render(state);
+
+  toast(
+   action.toUpperCase() +
+   ' completed'
+  );
+
+ }catch(error){
+
+  toast(
+   'ERROR: ' +
+   error.message
+  );
+
+  await refresh();
+
+ }finally{
+
+  requestBusy = false;
+ }
+}
+
+$('demo').onclick = () =>
+ control(
+  'mode',
+  {mode:'demo'}
+ );
+
+$('live').onclick = () => {
+
+ if(
+  confirm(
+   'Switch to LIVE mode? Orders remain blocked unless ALLOW_LIVE_TRADING=true on Render and the connected account is real.'
+  )
+ ){
+  control(
+   'mode',
+   {mode:'live'}
+  );
+ }
+};
+
+$('start').onclick = () =>
+ control(
+  'start',
+  {
+   symbol:$('symbol').value,
+   lot:Number(
+    $('lot').value
+   )
+  }
+ );
+
+$('stop').onclick = () =>
+ control('stop');
+
+$('symbol').onchange = () =>
+ control(
+  'settings',
+  {
+   symbol:$('symbol').value
+  }
+ );
+
+$('lot').onchange = () =>
+ control(
+  'settings',
+  {
+   lot:Number(
+    $('lot').value
+   )
+  }
+ );
+
+$('close').onclick = async () => {
+
+ if(
+  !confirm(
+   'Close ALL open positions?'
+  )
+ ){
+  return;
+ }
+
+ try{
+
+  const state =
+   await api(
+    '/api/close-all',
+    {method:'POST'}
+   );
+
+  render(state);
+
+  toast(
+   state.ok
+    ? 'Close request completed'
+    : state.message
+  );
+
+ }catch(error){
+
+  toast(
+   'ERROR: ' +
+   error.message
+  );
+ }
+};
+
+setInterval(
+ refresh,
+ 5000
+);
+
+refresh();
+
+</script>
+
+</body>
+</html>
