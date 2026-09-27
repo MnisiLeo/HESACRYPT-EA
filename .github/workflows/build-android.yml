@@ -17,38 +17,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Extract L.Mnisi package if needed
-        shell: bash
-        run: |
-          if [ ! -f "android/settings.gradle" ]; then
-            ZIP_FILE=$(find . -maxdepth 2 -type f -iname "*.zip" | head -n 1)
-
-            if [ -z "$ZIP_FILE" ]; then
-              echo "ERROR: android/settings.gradle was not found and no ZIP package exists."
-              exit 1
-            fi
-
-            echo "Extracting package: $ZIP_FILE"
-            mkdir -p .lmnisi_extract
-            unzip -o "$ZIP_FILE" -d .lmnisi_extract
-
-            if [ -f ".lmnisi_extract/android/settings.gradle" ]; then
-              cp -R .lmnisi_extract/android .
-            else
-              ANDROID_DIR=$(find .lmnisi_extract -type f -path "*/android/settings.gradle" -print -quit | xargs -r dirname)
-
-              if [ -z "$ANDROID_DIR" ]; then
-                echo "ERROR: Android project was not found inside the ZIP."
-                exit 1
-              fi
-
-              cp -R "$ANDROID_DIR" android
-            fi
-          fi
-
-          echo "Android project:"
-          find android -maxdepth 5 -type f | sort
-
       - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
@@ -73,7 +41,79 @@ jobs:
           unzip -q gradle-8.7-bin.zip -d "$HOME"
           echo "$HOME/gradle-8.7/bin" >> "$GITHUB_PATH"
 
-      - name: Build L.Mnisi APK
+      - name: Verify Android project
+        run: |
+          test -d android
+          test -f android/settings.gradle
+          test -f android/app/src/main/AndroidManifest.xml
+
+      - name: Fix Android Gradle configuration
+        working-directory: android
+        run: |
+          cat > settings.gradle <<'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+
+          rootProject.name = "LMnisi"
+          include(":app")
+          EOF
+
+          cat > build.gradle <<'EOF'
+          buildscript {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+
+              dependencies {
+                  classpath "com.android.tools.build:gradle:8.5.2"
+              }
+          }
+
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          EOF
+
+          cat > app/build.gradle <<'EOF'
+          apply plugin: "com.android.application"
+
+          android {
+              namespace "com.lmnisi.app"
+              compileSdk 35
+
+              defaultConfig {
+                  applicationId "com.lmnisi.app"
+                  minSdk 23
+                  targetSdk 35
+                  versionCode 1
+                  versionName "1.0"
+              }
+          }
+          EOF
+
+      - name: Verify Android application plugin
+        working-directory: android
+        run: |
+          gradle :app:tasks --all --no-daemon --console=plain | grep -E "assembleRelease|assembleDebug"
+
+      - name: Build release APK
         working-directory: android
         run: |
           gradle :app:assembleRelease --no-daemon --stacktrace --console=plain
