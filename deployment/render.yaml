@@ -1,25 +1,23 @@
 services:
   - type: web
-    name: lm-nisi-trading
-    env: docker
+    name: lmnisi-ea
+    runtime: docker
     dockerfilePath: ./deployment/Dockerfile
-    plan: starter
+    dockerContext: .
+    plan: free
+    healthCheckPath: /api/health
     envVars:
       - key: METAAPI_TOKEN
         sync: false
       - key: METAAPI_ACCOUNT_ID
         sync: false
-      - key: APP_KEY
+      - key: LMNISI_API_KEY
         sync: false
-      - key: ENABLE_LIVE
+      - key: ALLOW_LIVE_TRADING
         value: "false"
       - key: DEFAULT_SYMBOL
-        value: XAUUSD
-      - key: DEFAULT_VOLUME
+        value: "XAUUSD"
+      - key: DEFAULT_LOT
         value: "0.01"
-      - key: MAX_OPEN_POSITIONS
-        value: "1"
-      - key: MAX_DAILY_LOSS_PERCENT
-        value: "2"
-      - key: COOLDOWN_SECONDS
-        value: "180"
+      - key: POLL_SECONDS
+        value: "20"
