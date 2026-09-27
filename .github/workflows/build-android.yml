@@ -32,13 +32,21 @@ jobs:
       - name: Install Android SDK packages
         run: |
           SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+
           yes | "$SDKMANAGER" --licenses >/dev/null 2>&1 || true
-          "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+          "$SDKMANAGER" \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;35.0.0"
 
       - name: Install Gradle 8.7
         run: |
-          wget -q https://services.gradle.org/distributions/gradle-8.7-bin.zip
+          wget -q \
+            https://services.gradle.org/distributions/gradle-8.7-bin.zip
+
           unzip -q gradle-8.7-bin.zip -d "$HOME"
+
           echo "$HOME/gradle-8.7/bin" >> "$GITHUB_PATH"
 
       - name: Verify Android project
@@ -46,19 +54,27 @@ jobs:
         run: |
           test -f settings.gradle
           test -f build.gradle
+          test -f gradle.properties
           test -f app/build.gradle
           test -f app/proguard-rules.pro
           test -f app/src/main/AndroidManifest.xml
+          test -f app/src/main/java/com/lmnisi/app/MainActivity.java
 
       - name: Build installable Debug APK
         working-directory: android
         run: |
-          gradle :app:assembleDebug --no-daemon --stacktrace --console=plain
+          gradle :app:assembleDebug \
+            --no-daemon \
+            --stacktrace \
+            --console=plain
 
       - name: Verify APK exists
         run: |
-          test -f android/app/build/outputs/apk/debug/app-debug.apk
-          ls -lh android/app/build/outputs/apk/debug/app-debug.apk
+          test -f \
+            android/app/build/outputs/apk/debug/app-debug.apk
+
+          ls -lh \
+            android/app/build/outputs/apk/debug/app-debug.apk
 
       - name: Upload installable L.Mnisi APK
         uses: actions/upload-artifact@v4
