@@ -1,4 +1,4 @@
-name: Build L.Mnisi Android APK
+ name: Build L.Mnisi Android APK
 
 on:
   workflow_dispatch:
@@ -50,14 +50,19 @@ jobs:
           test -f app/proguard-rules.pro
           test -f app/src/main/AndroidManifest.xml
 
-      - name: Build release APK
+      - name: Build installable Debug APK
         working-directory: android
         run: |
-          gradle :app:assembleRelease --no-daemon --stacktrace --console=plain
+          gradle :app:assembleDebug --no-daemon --stacktrace --console=plain
 
-      - name: Upload L.Mnisi APK
+      - name: Verify APK exists
+        run: |
+          test -f android/app/build/outputs/apk/debug/app-debug.apk
+          ls -lh android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Upload installable L.Mnisi APK
         uses: actions/upload-artifact@v4
         with:
           name: LMnisi-Android-APK
-          path: android/app/build/outputs/apk/release/*.apk
-          if-no-files-found: error
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error   
