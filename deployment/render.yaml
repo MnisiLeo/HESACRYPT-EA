@@ -1,23 +1,8 @@
 services:
   - type: web
-    name: lmnisi-ea
+    name: hesacrypt-ea
     runtime: docker
-    dockerfilePath: ./deployment/Dockerfile
+    dockerfilePath: ./Dockerfile
     dockerContext: .
     plan: free
     healthCheckPath: /api/health
-    envVars:
-      - key: METAAPI_TOKEN
-        sync: false
-      - key: METAAPI_ACCOUNT_ID
-        sync: false
-      - key: LMNISI_API_KEY
-        sync: false
-      - key: ALLOW_LIVE_TRADING
-        value: "false"
-      - key: DEFAULT_SYMBOL
-        value: "XAUUSD"
-      - key: DEFAULT_LOT
-        value: "0.01"
-      - key: POLL_SECONDS
-        value: "20"
