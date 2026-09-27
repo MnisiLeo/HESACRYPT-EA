@@ -1,5 +1,44 @@
 package com.lmnisi.app;
-import android.app.*;import android.os.*;import android.webkit.*;
-public class MainActivity extends Activity{
- public void onCreate(Bundle b){super.onCreate(b);WebView w=new WebView(this);w.getSettings().setJavaScriptEnabled(true);w.getSettings().setDomStorageEnabled(true);w.loadUrl("https://YOUR-RENDER-URL/");setContentView(w);}
+
+import android.app.Activity;
+import android.os.Bundle;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
+
+public class MainActivity extends Activity {
+
+    private static final String APP_URL =
+            "https://YOUR-RENDER-URL/";
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        WebView webView = new WebView(this);
+
+        WebSettings settings = webView.getSettings();
+        settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        settings.setDatabaseEnabled(true);
+        settings.setAllowFileAccess(true);
+        settings.setAllowContentAccess(true);
+
+        webView.setWebViewClient(new WebViewClient());
+
+        webView.loadUrl(APP_URL);
+
+        setContentView(webView);
+    }
+
+    @Override
+    public void onBackPressed() {
+        WebView webView = (WebView) findViewById(android.R.id.content);
+
+        if (webView != null && webView.canGoBack()) {
+            webView.goBack();
+        } else {
+            super.onBackPressed();
+        }
+    }
 }
