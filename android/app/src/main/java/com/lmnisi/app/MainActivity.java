@@ -8,7 +8,9 @@ import android.webkit.WebViewClient;
 
 public class MainActivity extends Activity {
 
-    private static final String APP_URL = "https://YOUR-RENDER-URL/";
+    private static final String APP_URL =
+            "https://hesacrypt-ea.onrender.com/";
+
     private WebView webView;
 
     @Override
@@ -17,14 +19,21 @@ public class MainActivity extends Activity {
 
         webView = new WebView(this);
 
-        WebSettings settings = webView.getSettings();
+        WebSettings settings =
+                webView.getSettings();
+
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setDatabaseEnabled(true);
         settings.setAllowFileAccess(true);
         settings.setAllowContentAccess(true);
+        settings.setBuiltInZoomControls(false);
+        settings.setDisplayZoomControls(false);
 
-        webView.setWebViewClient(new WebViewClient());
+        webView.setWebViewClient(
+                new WebViewClient()
+        );
+
         webView.loadUrl(APP_URL);
 
         setContentView(webView);
@@ -32,7 +41,10 @@ public class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        if (webView != null && webView.canGoBack()) {
+        if (
+                webView != null &&
+                webView.canGoBack()
+        ) {
             webView.goBack();
         } else {
             super.onBackPressed();
