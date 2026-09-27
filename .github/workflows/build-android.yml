@@ -28,7 +28,6 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
           echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
           echo "$ANDROID_SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
-          echo "$ANDROID_SDK_ROOT/emulator" >> "$GITHUB_PATH"
 
       - name: Install Android SDK packages
         run: |
@@ -42,21 +41,13 @@ jobs:
           unzip -q gradle-8.7-bin.zip -d "$HOME"
           echo "$HOME/gradle-8.7/bin" >> "$GITHUB_PATH"
 
-      - name: Verify build tools
+      - name: Build Android APK
         run: |
-          java -version
-          gradle --version
-          ls "$ANDROID_SDK_ROOT/platforms/android-35"
-          ls "$ANDROID_SDK_ROOT/build-tools/35.0.0"
-
-      - name: Build release APK
-        working-directory: android
-        run: |
-          gradle clean assembleRelease --stacktrace --no-daemon
+          gradle --project-dir android :app:assembleRelease --stacktrace --no-daemon
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: LMnisi-Android-APK
           path: android/app/build/outputs/apk/release/*.apk
-          if-no-files-found: error 
+          if-no-files-found: error
