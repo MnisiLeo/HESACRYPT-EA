@@ -8,14 +8,14 @@ import android.webkit.WebViewClient;
 
 public class MainActivity extends Activity {
 
-    private static final String APP_URL =
-            "https://YOUR-RENDER-URL/";
+    private static final String APP_URL = "https://YOUR-RENDER-URL/";
+    private WebView webView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        WebView webView = new WebView(this);
+        webView = new WebView(this);
 
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
@@ -25,7 +25,6 @@ public class MainActivity extends Activity {
         settings.setAllowContentAccess(true);
 
         webView.setWebViewClient(new WebViewClient());
-
         webView.loadUrl(APP_URL);
 
         setContentView(webView);
@@ -33,8 +32,6 @@ public class MainActivity extends Activity {
 
     @Override
     public void onBackPressed() {
-        WebView webView = (WebView) findViewById(android.R.id.content);
-
         if (webView != null && webView.canGoBack()) {
             webView.goBack();
         } else {
