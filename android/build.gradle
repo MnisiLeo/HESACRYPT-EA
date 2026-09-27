@@ -1,31 +1,3 @@
 plugins {
-    id "com.android.application"
-}
-
-android {
-    namespace "com.lmnisi.app"
-    compileSdk 35
-
-    defaultConfig {
-        applicationId "com.lmnisi.app"
-        minSdk 23
-        targetSdk 35
-        versionCode 1
-        versionName "1.0"
-    }
-
-    buildTypes {
-        release {
-            minifyEnabled false
-            shrinkResources false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
-
-        debug {
-            minifyEnabled false
-        }
-    }
+    id "com.android.application" apply false
 }
