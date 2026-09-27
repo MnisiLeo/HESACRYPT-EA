@@ -1,4 +1,4 @@
- name: Build L.Mnisi Android APK
+name: Build L.Mnisi Android APK
 
 on:
   workflow_dispatch:
@@ -65,4 +65,4 @@ jobs:
         with:
           name: LMnisi-Android-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
-          if-no-files-found: error   
+          if-no-files-found: error
